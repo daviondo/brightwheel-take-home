@@ -1,12 +1,17 @@
 import { z } from "zod";
 import { POLICY_CATEGORIES } from "./triage";
 
+// child_daily_activity is triage-only; it has no corresponding policies table row.
+const DB_POLICY_CATEGORIES = POLICY_CATEGORIES.filter(
+  (c) => c !== "child_daily_activity",
+) as [string, ...string[]];
+
 export const policyProposalSchema = z.object({
   propose: z.boolean(),
   reason: z.string().describe("Why proposing or not proposing. 1-2 sentences."),
   proposed_policy: z
     .object({
-      category: z.enum(POLICY_CATEGORIES),
+      category: z.enum(DB_POLICY_CATEGORIES as [string, ...string[]]),
       title: z.string().describe('Short, declarative. E.g., "Sick Child Exclusion: Pink Eye".'),
       content: z
         .string()

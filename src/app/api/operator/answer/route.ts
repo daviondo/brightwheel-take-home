@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { generateObject } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getCurrentOperator } from "@/lib/auth";
+import {
+  policyProposalSchema,
+  policyProposalSystemPrompt,
+  buildPolicyProposalUserPrompt,
+} from "@/prompts/proposePolicy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +26,6 @@ export async function POST(request: NextRequest) {
 
     const db = createServiceClient();
 
-    // Verify conversation exists
     const { data: conversation } = await db
       .from("conversations")
       .select("id, status")
@@ -49,19 +55,74 @@ export async function POST(request: NextRequest) {
     // Update conversation status
     await db
       .from("conversations")
-      .update({
-        status: "answered_by_operator",
-        last_message_at: new Date().toISOString(),
-      })
+      .update({ status: "answered_by_operator", last_message_at: new Date().toISOString() })
       .eq("id", conversation_id);
 
-    // Policy proposal is added in M4 — stub for now
+    // Get original parent question + existing policy titles for proposal LLM
+    const [firstParentMsgRes, existingPoliciesRes] = await Promise.all([
+      db
+        .from("messages")
+        .select("content")
+        .eq("conversation_id", conversation_id)
+        .eq("role", "parent")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single(),
+
+      db.from("policies").select("id, title, category").eq("status", "active"),
+    ]);
+
+    const originalQuestion = firstParentMsgRes.data?.content ?? "";
+    const existingPolicies = existingPoliciesRes.data ?? [];
+
+    // Call policy-proposal LLM
+    const { object: proposal } = await generateObject({
+      model: anthropic("claude-sonnet-4-6"),
+      schema: policyProposalSchema,
+      system: policyProposalSystemPrompt,
+      prompt: buildPolicyProposalUserPrompt({
+        question: originalQuestion,
+        operatorAnswer: answer.trim(),
+        existingPolicies,
+      }),
+    });
+
+    // If proposing, insert draft policy and back-link conversation
+    let proposedPolicyRecord: { id: string; category: string; title: string; content: string } | null = null;
+
+    if (proposal.propose && proposal.proposed_policy) {
+      const p = proposal.proposed_policy;
+      const { data: newPolicy, error: policyErr } = await db
+        .from("policies")
+        .insert({
+          category: p.category,
+          title: p.title,
+          content: p.content,
+          status: "draft",
+          source: "proposed_by_ai",
+          proposed_from_conversation_id: conversation_id,
+          created_by_operator: operator.id,
+        })
+        .select("id, category, title, content")
+        .single();
+
+      if (policyErr || !newPolicy) {
+        console.error("[operator/answer] insert draft policy:", policyErr?.message);
+      } else {
+        proposedPolicyRecord = newPolicy;
+        await db
+          .from("conversations")
+          .update({ proposed_policy_id: newPolicy.id, policy_proposal_status: "pending" })
+          .eq("id", conversation_id);
+      }
+    }
+
     return NextResponse.json({
       message_id: message.id,
       policy_proposal: {
-        propose: false,
-        reason: "Policy proposal not yet implemented.",
-        proposed: null,
+        propose: proposal.propose,
+        reason: proposal.reason,
+        proposed: proposedPolicyRecord,
       },
     });
   } catch (error) {
