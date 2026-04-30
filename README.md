@@ -120,7 +120,6 @@ Run `pnpm test` with the dev server running to generate `tests/eval/results.md`.
 | Row Level Security | API-layer authz via `getAuthorizedChildIds` is the single source of truth here | RLS policies mirroring `parent_child` as defense-in-depth |
 | SMS / email notifications | Resend is in the personal project this was forked from; stripped for scope | Notify operator on high-urgency escalation; notify parent when operator replies |
 | Real-time updates | Parent chat polls every 10 seconds for operator replies | Supabase Realtime subscription — zero-latency delivery |
-| Voice input | M6 stretch; deprioritized in favor of the teaching loop | Web Speech API for dictation; text-to-speech for accessibility |
 | Multi-language | Spanish is the obvious first add for US childcare | i18n on prompts + UI; parent language preference on the parent record |
 | Vector similarity | Could surface "you've been asked this before" to operators | pgvector on policy embeddings for semantic deduplication |
 | Multi-center | Single-center config in `lib/center-config.ts` | Per-center config in DB; operator scoped to center; separate policy namespaces |
@@ -131,17 +130,12 @@ Run `pnpm test` with the dev server running to generate `tests/eval/results.md`.
 
 ## What I'd build next
 
-**30 days**
-- Real auth (Supabase Auth + magic link) and Row Level Security
-- SMS / email notifications via Resend: operator on escalation, parent on reply
-- Supabase Realtime instead of 10-second polling
-
-**60 days**
-- Voice input (Web Speech API) and text-to-speech replies
-- Spanish language support (prompt + UI i18n)
-- Analytics: escalation rate over time, top unanswered categories, confidence distribution
-
-**90 days**
-- Multi-center: per-center policy namespaces, operator scoping
-- pgvector semantic deduplication: surface near-duplicate questions before the operator types
-- Tool calls for operational actions: tour scheduling, payment links, attendance check-in
+- **Real auth** — Supabase Auth with magic link or Google OAuth; RLS as a second defense layer
+- **SMS / email notifications** — operator on high-urgency escalation, parent when the director replies
+- **Supabase Realtime** — replace 10-second polling with zero-latency push
+- **Text-to-speech replies** — voice input via Web Speech API is already in; TTS would close the loop
+- **Spanish language support** — i18n on prompts + UI; parent language preference on the parent record
+- **Analytics depth** — escalation rate over time, top unanswered categories, confidence distribution
+- **Multi-center** — per-center policy namespaces, operator scoped to center
+- **pgvector semantic deduplication** — surface near-duplicate questions before the operator types
+- **Operational actions** — tool calls for tour scheduling, payment links, attendance check-in
