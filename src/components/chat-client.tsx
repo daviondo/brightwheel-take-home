@@ -9,13 +9,16 @@ import { CENTER } from "@/lib/center-config";
 
 function useSpeechInput(onResult: (text: string) => void) {
   const [isListening, setIsListening] = useState(false);
+  const [supported, setSupported] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recRef = useRef<any>(null);
 
-  const supported =
-    typeof window !== "undefined" &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    !!(( window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  useEffect(() => {
+    setSupported(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      !!(( window as any).SpeechRecognition || (window as any).webkitSpeechRecognition),
+    );
+  }, []);
 
   function start() {
     if (!supported) return;
