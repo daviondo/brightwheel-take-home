@@ -35,7 +35,7 @@ export function DemoBanner({ currentName, personas, mode }: DemoBannerProps) {
 
   return (
     <div
-      className="w-full border-b bg-white/80 backdrop-blur-sm px-4 py-2"
+      className="w-full border-b bg-white px-4 py-2"
       style={{ borderColor: "var(--border)" }}
     >
       <div className="mx-auto max-w-2xl flex items-center gap-2 text-sm">

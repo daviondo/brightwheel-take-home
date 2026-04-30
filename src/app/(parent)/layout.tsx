@@ -20,7 +20,7 @@ export default async function ParentLayout({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <DemoBanner currentName={currentName} personas={personas} mode="parent" />
-      <header className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur-sm px-4 py-3">
+      <header className="sticky top-0 z-10 border-b bg-white px-4 py-3">
         <div className="mx-auto max-w-2xl">
           <h1 className="text-lg font-semibold text-foreground">{CENTER.name}</h1>
           <p className="text-xs text-muted-fg">AI Front Desk</p>
