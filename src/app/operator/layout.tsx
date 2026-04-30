@@ -3,6 +3,7 @@ import { getCurrentOperator } from "@/lib/auth";
 import { DemoBanner } from "@/components/demo-banner";
 import { OperatorTabBar } from "@/components/operator-tab-bar";
 import { CENTER } from "@/lib/center-config";
+import { Toaster } from "sonner";
 
 export default async function OperatorLayout({
   children,
@@ -21,7 +22,7 @@ export default async function OperatorLayout({
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <DemoBanner currentName={currentName} personas={personas} mode="operator" />
-      <header className="sticky top-0 z-10 border-b bg-white px-4 py-3 md:static md:border-b">
+      <header className="sticky top-0 border-b bg-white px-4 py-3 md:static md:border-b">
         <div className="mx-auto max-w-none">
           <h1 className="text-lg font-semibold text-foreground">{CENTER.name}</h1>
           <p className="text-xs text-muted-fg">Director Dashboard</p>
@@ -31,6 +32,7 @@ export default async function OperatorLayout({
         <OperatorTabBar />
         <main className="flex flex-1 flex-col pb-16 md:pb-0">{children}</main>
       </div>
+      <Toaster position="bottom-center" richColors />
     </div>
   );
 }

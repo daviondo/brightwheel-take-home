@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Send, Wand2, AlertCircle, CheckCircle2, User, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { PolicyProposalModal } from "@/components/policy-proposal-modal";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,13 @@ interface DraftResult {
   draft_reply: string;
   policies_referenced: PolicyRef[];
   notes_for_operator: string | null;
+}
+
+interface ProposedPolicy {
+  id: string;
+  category: string;
+  title: string;
+  content: string;
 }
 
 interface Props {
@@ -78,14 +86,24 @@ function MessageBubble({ msg }: { msg: ConversationMessage }) {
   return (
     <div className={`flex gap-2 ${isParent ? "flex-row-reverse" : "flex-row"}`}>
       <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-muted text-muted-fg">
-        {isParent ? <User className="h-4 w-4" /> : isOperator ? <CheckCircle2 className="h-4 w-4 text-blue-500" /> : <Bot className="h-4 w-4" />}
+        {isParent ? (
+          <User className="h-4 w-4" />
+        ) : isOperator ? (
+          <CheckCircle2 className="h-4 w-4 text-blue-500" />
+        ) : (
+          <Bot className="h-4 w-4" />
+        )}
       </div>
 
       <div className={`flex max-w-[75%] flex-col gap-1 ${isParent ? "items-end" : "items-start"}`}>
         <div className="flex items-center gap-1.5 text-xs text-muted-fg">
-          {isOperator && <span>{msg.operator_name ?? "Director"}</span>}
-          {!isParent && !isOperator && <span>AI Assistant</span>}
-          {isParent && <span>Parent</span>}
+          {isParent ? (
+            <span>Parent</span>
+          ) : isOperator ? (
+            <span>{msg.operator_name ?? "Director"}</span>
+          ) : (
+            <span>AI Assistant</span>
+          )}
           <span>·</span>
           <span>{formatTime(msg.created_at)}</span>
         </div>
@@ -96,8 +114,8 @@ function MessageBubble({ msg }: { msg: ConversationMessage }) {
             isParent
               ? "bg-primary text-white rounded-tr-sm"
               : isOperator
-              ? "bg-blue-50 text-foreground border border-blue-200 rounded-tl-sm"
-              : "bg-muted text-foreground rounded-tl-sm",
+                ? "bg-blue-50 text-foreground border border-blue-200 rounded-tl-sm"
+                : "bg-muted text-foreground rounded-tl-sm",
           ].join(" ")}
         >
           {msg.content}
@@ -140,14 +158,16 @@ export function OperatorConversation({ conversation }: Props) {
   const [reply, setReply] = useState("");
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [isDrafting, startDraft] = useTransition();
-  const [isSending, startSend] = useTransition();
+  const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [proposal, setProposal] = useState<{ policy: ProposedPolicy; reason: string } | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation.messages.length]);
 
-  const canReply = conversation.status !== "answered_by_operator" && conversation.status !== "answered";
+  const canReply =
+    conversation.status !== "answered_by_operator" && conversation.status !== "answered";
 
   async function handleDraft() {
     setError(null);
@@ -170,7 +190,8 @@ export function OperatorConversation({ conversation }: Props) {
   async function handleSend() {
     if (!reply.trim()) return;
     setError(null);
-    startSend(async () => {
+    setIsSending(true);
+    try {
       const res = await fetch("/api/operator/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -180,115 +201,135 @@ export function OperatorConversation({ conversation }: Props) {
         setError("Failed to send reply. Try again.");
         return;
       }
+      const data = await res.json();
       setReply("");
       setDraft(null);
       router.refresh();
-    });
+
+      if (data.policy_proposal?.propose && data.policy_proposal.proposed) {
+        setProposal({
+          policy: data.policy_proposal.proposed,
+          reason: data.policy_proposal.reason,
+        });
+      }
+    } finally {
+      setIsSending(false);
+    }
   }
 
   return (
-    <div className="flex flex-1 flex-col">
-      {/* Parent info bar */}
-      {conversation.parent && (
-        <div className="border-b bg-muted/30 px-4 py-3">
-          <div className="mx-auto max-w-3xl flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <span className="font-medium text-sm">{conversation.parent.name}</span>
-              {conversation.parent.email && (
-                <span className="ml-2 text-xs text-muted-fg">{conversation.parent.email}</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {conversation.urgency === "high" && (
-                <span className="flex items-center gap-1 text-xs font-medium text-red-600">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  High priority
+    <>
+      <div className="flex flex-1 flex-col">
+        {/* Parent info bar */}
+        {conversation.parent && (
+          <div className="border-b bg-muted/30 px-4 py-3">
+            <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="text-sm font-medium">{conversation.parent.name}</span>
+                {conversation.parent.email && (
+                  <span className="ml-2 text-xs text-muted-fg">{conversation.parent.email}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {conversation.urgency === "high" && (
+                  <span className="flex items-center gap-1 text-xs font-medium text-accent">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    High priority
+                  </span>
+                )}
+                <span className="rounded-full border px-2 py-0.5 text-xs capitalize text-muted-fg">
+                  {conversation.status.replace(/_/g, " ")}
                 </span>
-              )}
-              <span className="rounded-full border px-2 py-0.5 text-xs text-muted-fg capitalize">
-                {conversation.status.replace(/_/g, " ")}
-              </span>
+              </div>
             </div>
           </div>
+        )}
+
+        {/* Message thread */}
+        <div className="flex-1 overflow-y-auto px-4 py-5">
+          <div className="mx-auto max-w-3xl space-y-4">
+            {conversation.messages.map((msg) => (
+              <MessageBubble key={msg.id} msg={msg} />
+            ))}
+            <div ref={bottomRef} />
+          </div>
         </div>
-      )}
 
-      {/* Message thread */}
-      <div className="flex-1 overflow-y-auto px-4 py-5">
-        <div className="mx-auto max-w-3xl space-y-4">
-          {conversation.messages.map((msg) => (
-            <MessageBubble key={msg.id} msg={msg} />
-          ))}
-          <div ref={bottomRef} />
-        </div>
-      </div>
+        {/* Reply panel */}
+        <div className="border-t bg-white px-4 py-4">
+          <div className="mx-auto max-w-3xl space-y-3">
+            {error && <p className="text-xs text-red-600">{error}</p>}
 
-      {/* Reply panel */}
-      <div className="border-t bg-white px-4 py-4">
-        <div className="mx-auto max-w-3xl space-y-3">
-          {error && (
-            <p className="text-xs text-red-600">{error}</p>
-          )}
-
-          {draft?.notes_for_operator && (
-            <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2 text-xs text-yellow-900">
-              <strong>Note:</strong> {draft.notes_for_operator}
-            </div>
-          )}
-
-          {draft?.policies_referenced && draft.policies_referenced.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {draft.policies_referenced.map((p) => (
-                <span
-                  key={p.id}
-                  className="rounded-full border bg-muted/50 px-2 py-0.5 text-xs text-muted-fg"
-                >
-                  {p.title}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {canReply ? (
-            <>
-              <Textarea
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                placeholder="Type your reply to the parent..."
-                className="min-h-[100px] resize-none text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSend();
-                }}
-              />
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDraft}
-                  disabled={isDrafting || isSending}
-                  className="gap-1.5"
-                >
-                  <Wand2 className="h-4 w-4" />
-                  {isDrafting ? "Drafting…" : "Draft from policies"}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSend}
-                  disabled={isSending || !reply.trim()}
-                  className="ml-auto gap-1.5"
-                >
-                  <Send className="h-4 w-4" />
-                  {isSending ? "Sending…" : "Send reply"}
-                </Button>
+            {draft?.notes_for_operator && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-900">
+                <strong>Note:</strong> {draft.notes_for_operator}
               </div>
-            </>
-          ) : (
-            <p className="text-center text-sm text-muted-fg py-2">
-              This conversation has been answered.
-            </p>
-          )}
+            )}
+
+            {draft?.policies_referenced && draft.policies_referenced.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {draft.policies_referenced.map((p) => (
+                  <span
+                    key={p.id}
+                    className="rounded-full border bg-muted/50 px-2 py-0.5 text-xs text-muted-fg"
+                  >
+                    {p.title}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {canReply ? (
+              <>
+                <Textarea
+                  value={reply}
+                  onChange={(e) => setReply(e.target.value)}
+                  placeholder="Type your reply to the parent..."
+                  className="min-h-[100px] resize-none text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSend();
+                  }}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDraft}
+                    disabled={isDrafting || isSending}
+                    className="gap-1.5"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    {isDrafting ? "Drafting…" : "Draft from policies"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSend}
+                    disabled={isSending || !reply.trim()}
+                    className="ml-auto gap-1.5"
+                  >
+                    <Send className="h-4 w-4" />
+                    {isSending ? "Sending…" : "Send reply"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="py-2 text-center text-sm text-muted-fg">
+                This conversation has been answered.
+              </p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Policy proposal modal */}
+      {proposal && (
+        <PolicyProposalModal
+          proposal={proposal.policy}
+          reason={proposal.reason}
+          open={!!proposal}
+          onClose={() => setProposal(null)}
+        />
+      )}
+    </>
   );
 }
