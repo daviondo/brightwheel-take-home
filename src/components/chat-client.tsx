@@ -1,9 +1,46 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Send, AlertCircle } from "lucide-react";
+import { Send, AlertCircle, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CENTER } from "@/lib/center-config";
+
+// ── Voice input hook ──────────────────────────────────────────────────────────
+
+function useSpeechInput(onResult: (text: string) => void) {
+  const [isListening, setIsListening] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recRef = useRef<any>(null);
+
+  const supported =
+    typeof window !== "undefined" &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    !!(( window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
+  function start() {
+    if (!supported) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+    const rec = new SR();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => onResult(e.results[0][0].transcript);
+    rec.onend = () => setIsListening(false);
+    rec.onerror = () => setIsListening(false);
+    recRef.current = rec;
+    rec.start();
+    setIsListening(true);
+  }
+
+  function stop() {
+    recRef.current?.stop();
+    setIsListening(false);
+  }
+
+  return { isListening, supported, start, stop };
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -189,6 +226,15 @@ export function ChatClient({ parent, childNames }: ChatClientProps) {
   const lastActivityRef = useRef(Date.now());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const { isListening, supported: speechSupported, start: startListening, stop: stopListening } =
+    useSpeechInput((transcript) => {
+      setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
+    });
+
   // Auto-scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -365,13 +411,21 @@ export function ChatClient({ parent, childNames }: ChatClientProps) {
           {requiresSignin && <SignInCta />}
 
           {isPending && (
-            <div className="flex gap-2">
-              <div className="h-2 w-2 rounded-full mt-2" style={{ backgroundColor: "var(--muted)" }} />
+            <div className="flex gap-2 max-w-[85%]">
+              <div className="h-2 w-2 rounded-full mt-3.5 flex-shrink-0" style={{ backgroundColor: "var(--muted)" }} />
               <div
-                className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm"
-                style={{ backgroundColor: "var(--card)", color: "var(--muted-fg)", border: "1px solid var(--border)" }}
+                className="rounded-2xl rounded-tl-sm px-4 py-3.5"
+                style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
               >
-                <span className="animate-pulse">Thinking…</span>
+                <div className="flex gap-1.5 items-center h-5">
+                  {[0, 160, 320].map((delay) => (
+                    <span
+                      key={delay}
+                      className="h-2 w-2 rounded-full animate-bounce"
+                      style={{ backgroundColor: "var(--muted-fg)", animationDelay: `${delay}ms` }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -405,6 +459,21 @@ export function ChatClient({ parent, childNames }: ChatClientProps) {
               "--tw-ring-color": "var(--primary)",
             } as React.CSSProperties}
           />
+          {speechSupported && (
+            <Button
+              type="button"
+              onClick={isListening ? stopListening : startListening}
+              disabled={isPending}
+              className="h-[52px] w-[52px] rounded-full flex-shrink-0 p-0 flex items-center justify-center transition-colors"
+              style={{
+                backgroundColor: isListening ? "var(--danger)" : "var(--border)",
+                color: isListening ? "white" : "var(--muted-fg)",
+              }}
+              aria-label={isListening ? "Stop recording" : "Dictate question"}
+            >
+              {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </Button>
+          )}
           <Button
             type="submit"
             disabled={!input.trim() || isPending}
