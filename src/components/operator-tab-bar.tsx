@@ -27,8 +27,8 @@ export function OperatorTabBar() {
               <Link
                 href={href}
                 className={[
-                  "flex flex-col items-center gap-0.5 px-2 py-3 text-xs font-medium transition-colors",
-                  "md:flex-row md:gap-3 md:px-4 md:py-3 md:text-sm md:rounded-lg md:mx-2 md:mb-1",
+                  "flex flex-col items-center gap-0.5 px-2 py-3 min-h-[56px] justify-center text-sm font-medium transition-colors",
+                  "md:flex-row md:gap-3 md:px-4 md:py-3 md:min-h-0 md:text-sm md:rounded-lg md:mx-2 md:mb-1",
                   active
                     ? "text-primary md:bg-primary/10"
                     : "text-muted-fg hover:text-foreground",

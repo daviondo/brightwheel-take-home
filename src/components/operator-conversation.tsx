@@ -110,7 +110,7 @@ function MessageBubble({ msg }: { msg: ConversationMessage }) {
 
         <div
           className={[
-            "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+            "rounded-2xl px-3.5 py-2.5 text-base leading-relaxed",
             isParent
               ? "bg-primary text-white rounded-tr-sm"
               : isOperator
@@ -258,10 +258,10 @@ export function OperatorConversation({ conversation }: Props) {
         {/* Reply panel */}
         <div className="border-t bg-white px-4 py-4">
           <div className="mx-auto max-w-3xl space-y-3">
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
             {draft?.notes_for_operator && (
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-900">
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
                 <strong>Note:</strong> {draft.notes_for_operator}
               </div>
             )}
@@ -285,7 +285,7 @@ export function OperatorConversation({ conversation }: Props) {
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   placeholder="Type your reply to the parent..."
-                  className="min-h-[100px] resize-none text-sm"
+                  className="min-h-[100px] resize-none text-base"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSend();
                   }}
@@ -293,19 +293,17 @@ export function OperatorConversation({ conversation }: Props) {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={handleDraft}
                     disabled={isDrafting || isSending}
-                    className="gap-1.5"
+                    className="gap-1.5 min-h-[44px]"
                   >
                     <Wand2 className="h-4 w-4" />
                     {isDrafting ? "Drafting…" : "Draft from policies"}
                   </Button>
                   <Button
-                    size="sm"
                     onClick={handleSend}
                     disabled={isSending || !reply.trim()}
-                    className="ml-auto gap-1.5"
+                    className="ml-auto gap-1.5 min-h-[44px]"
                   >
                     <Send className="h-4 w-4" />
                     {isSending ? "Sending…" : "Send reply"}

@@ -117,14 +117,14 @@ export function PolicyProposalModal({ proposal, reason, open, onClose }: Props) 
         {/* Editable fields */}
         <div className="space-y-4 px-6 py-5">
           <div className="space-y-1.5">
-            <Label htmlFor="pol-category" className="text-xs font-medium">
+            <Label htmlFor="pol-category" className="text-sm font-medium">
               Category
             </Label>
             <select
               id="pol-category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               {DB_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -142,7 +142,7 @@ export function PolicyProposalModal({ proposal, reason, open, onClose }: Props) 
               id="pol-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="text-sm"
+              className="text-base"
             />
           </div>
 
@@ -154,7 +154,7 @@ export function PolicyProposalModal({ proposal, reason, open, onClose }: Props) 
               id="pol-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[120px] resize-none text-sm leading-relaxed"
+              className="min-h-[120px] resize-none text-base leading-relaxed"
             />
           </div>
         </div>

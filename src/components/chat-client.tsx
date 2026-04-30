@@ -167,7 +167,7 @@ function SignInCta() {
           <p className="font-medium" style={{ color: "var(--foreground)" }}>
             Sign in to ask about your child
           </p>
-          <p className="text-sm mt-1" style={{ color: "var(--muted-fg)" }}>
+          <p className="text-base mt-1" style={{ color: "var(--muted-fg)" }}>
             Use the <strong>Demo mode</strong> dropdown at the top to select a parent.
           </p>
         </div>
