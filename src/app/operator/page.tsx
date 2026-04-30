@@ -31,13 +31,19 @@ async function getInboxData(urgency?: string) {
     query = query.eq("urgency", urgency);
   }
 
-  const [{ data: conversations, error }, { count: answeredCount }] = await Promise.all([
-    query,
-    db
-      .from("conversations")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "answered"),
-  ]);
+  const [{ data: conversations, error }, { count: answeredCount }, { data: allInbox }] =
+    await Promise.all([
+      query,
+      db
+        .from("conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "answered"),
+      // Always fetch unfiltered counts so chip labels are stable across filters
+      db
+        .from("conversations")
+        .select("id, urgency")
+        .eq("status", "awaiting_operator"),
+    ]);
 
   if (error) throw new Error(error.message);
 
@@ -81,12 +87,13 @@ async function getInboxData(urgency?: string) {
     };
   });
 
+  const all = allInbox ?? [];
   return {
     items,
     counts: {
-      high: convs.filter((c) => c.urgency === "high").length,
-      standard: convs.filter((c) => c.urgency === "standard").length,
-      total: items.length,
+      high: all.filter((c) => c.urgency === "high").length,
+      standard: all.filter((c) => c.urgency === "standard").length,
+      total: all.length,
     },
     answered_count: answeredCount ?? 0,
   };
