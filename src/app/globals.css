@@ -1,0 +1,73 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-muted: var(--muted);
+  --color-muted-fg: var(--muted-fg);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Sunshine Preschool — warm sage-and-cream with coral accent */
+  --primary:      #5B8772;
+  --primary-hover:#4A7160;
+  --background:   #FAF8F3;
+  --foreground:   #2D3A33;
+  --muted:        #8B9D93;
+  --muted-fg:     #5C6B63;
+  --accent:       #E87B6F;
+  --accent-hover: #D86A5E;
+  --border:       #E5DFD3;
+  --card:         #FFFFFF;
+  --success:      #6B9B7F;
+  --warning:      #C9A96E;
+  --danger:       #C76555;
+
+  /* shadcn compatibility aliases */
+  --primary-foreground: #FFFFFF;
+  --secondary:          #F0EDE6;
+  --secondary-foreground: #2D3A33;
+  --destructive:        #C76555;
+  --popover:            #FFFFFF;
+  --popover-foreground: #2D3A33;
+  --card-foreground:    #2D3A33;
+  --muted-foreground:   #5C6B63;
+  --accent-foreground:  #FFFFFF;
+  --ring: #5B8772;
+  --input: #E5DFD3;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: 17px;
+  }
+}
