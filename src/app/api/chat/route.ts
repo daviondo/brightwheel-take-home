@@ -343,7 +343,14 @@ export async function POST(request: NextRequest) {
     });
 
     // ── Step 11: Sensitive-intent override ────────────────────────────────────
-    if (triage.sensitivity !== "none") {
+    // General pricing questions (financial sensitivity, no personal data) are
+    // published information — skip the override so "what's tuition for infants?"
+    // doesn't land in the inbox. Personal financial questions (account status,
+    // billing disputes) still escalate.
+    const isGeneralPricing =
+      triage.sensitivity === "financial" && !triage.requires_personal_data;
+
+    if (triage.sensitivity !== "none" && !isGeneralPricing) {
       shouldEscalate = true;
       escalationReason =
         escalationReason ??
